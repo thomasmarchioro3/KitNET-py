@@ -1,0 +1,5 @@
+# PyCache
+**/*.pyc
+
+# CSV files
+*.csv
