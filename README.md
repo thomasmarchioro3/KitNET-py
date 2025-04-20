@@ -1,5 +1,12 @@
 # Overview
-In this repository you will find a Python implementation of KitNET; an online anomaly detector, based on an ensemble of autoencoders. From,
+This is a refactored version of the original KitNET code. The objectives of this refactoring were the following:
+- Update code to Python 3.13 (and latest versions of Numpy, Pandas, Matplotlib, and Scikit-learn as of Spring 2025)
+- Add `.gitignore` and `requirements.txt`
+- Add Docstrings ([Google style](https://google.github.io/styleguide/pyguide.html))
+- Enforce [PEP8](https://peps.python.org/pep-0008/#function-and-variable-names) compliance for function and variable names
+- Meaningful variable names
+
+From,
 
 *Yisroel Mirsky, Tomer Doitshman, Yuval Elovici, and Asaf Shabtai, "Kitsune: An Ensemble of Autoencoders for Online Network Intrusion Detection", Network and Distributed System Security Symposium 2018 (NDSS'18)*
 
@@ -16,48 +23,53 @@ The architecture KitNET operates in the following way: First, the features of an
  
 Some points about KitNET:
 * It is completely plug-and-play.
-* It is an unsupervised machine learning algorithm (it does not need label, just train it on *normal* data!)
+* It is an unsupervised machine learning algorithm (it does not need labels, just train it on *normal* data!)
 * Its efficiency can be scaled with its input parameter m: the maximal size of any autoencoder in the ensemble layer (smaller autoencoders are exponentially cheaper to train and execute)
 
 
 # Using The Code
+Install the requirements with PIP by running:
+```sh
+pip install -r requirements.txt
+```
+
 Here is a simple example of how to make a KitNET object:
 ```
-import KitNET as kit
+from src.kitnet import KitNET
 
 # KitNET params:
-n = 100 # the number of features (dimensions) in your dataset/stream
-maxAE = 10 #maximum size for any autoencoder in the ensemble layer
-FMgrace = 5000 #the number of instances taken to incrementally learn the feature mapping (the ensemble's architecture)
-ADgrace = 50000 #the number of instances used to incrementally train the anomaly detector (ensemble itself)
+num_features = 100  # the number of features (dimensions) in your dataset/stream
+max_autoencoder_size = 10  # maximum input size for any autoencoder in the ensemble layer
+feature_map_learning_period = 5_000  # the number of samples employed to learn the feature mapping (the ensemble's architecture)
+training_period = 50_000  # the number of samples used to train the model (ensemble of autoencoders)
 
 # Build KitNET
-K = kit.KitNET(n,maxAE,FMgrace,ADgrace)
+model = KitNET(num_features, max_autoencoder_size, feature_map_learning_period, training_period)
 ```
 
-To use the KitNET object, simply *process()* one instance at a time. An instance should be in numpy array format with a length of n. The *process()* method will return the root mean squared error (RMSE) anomaly score (larger RMSE values are more anomalous). The *process()* method will automatically learn from the instance if the grace period (FMgrace+AMgrace) has not expired. During training, the method will return a RMSE value of zero.
+To use the KitNET object, simply *process()* one instance at a time. An instance should be in numpy array format with a length of `num_features`. The *process()* method will return the root mean squared error (RMSE) anomaly score (larger RMSE values are more anomalous). The *process()* method will automatically learn from the instance if the learning period (`feature_map_learning_period`+`training_period`) has not expired. During training, the method will return a RMSE value of zero.
 
 Here is an example usage of the KitNET object:
 ```
-for i in range(X.shape[0]): #X is a m-by-n dataset
-    RMSE = K.process(X[i,]) #will train during the grace periods, then execute on all the rest.
-    print(RMSE)
+for i in range(X.shape[0]):  # X is a numpy array with shape `(num_samples, num_features)`
+    error = model.process(X[i])  # will train during the learning periods, then execute on all the rest.
+    print(error)
 ```
 
 Alternatively, you can train on instances after the grace period by performing
 ```
-K.train(x)
+model.train(x)
 ```
 Although it's not recommended, you can also execute (predict an RMSE score) at any time as well, by performing
 ```
-RMSE=K.execute(x)
+error = model.execute(x)
 ```
-Note that executing an instance before a feature map has been discovered will result in an error.
+Note that executing a the model on a sample before a feature map has been discovered will result in an error.
 
 ## Advanced configurations
 For advanced applications, you also have the option to provide you own feature map (i.e., which feature in your dataset goes to which autoencoder in the ensemble layer of KitNET). This also allows you to explicitly set the number and size of each autoencoder. To provide a mapping, use the *feature_map* argument in the constructor of KitNET. The map must be a list, where the i-th entry contains a list of the feature indices to be assigned to the i-th autoencoder in the ensemble. For example,
 ```
-map = [[2,5,3],[4,0,1],[6,7]] 
+feature_map = [[2,5,3],[4,0,1],[6,7]] 
 ```
 This example makes three autoencoders in the ensemble layer, where the first auto encoder receives features 2,5, and 3, etc...
 Other advanced configurations, which can be set via the constructor, are:
@@ -65,16 +77,15 @@ Other advanced configurations, which can be set via the constructor, are:
 * The ratio of hidden neurons to visible neurons in each autoencoder (default *hidden_ratio=0.75*) 
 
 # Demo Code
-As a quick start, a demo script is provided in example.py. You can either run it directly or enter the following into your python console
+As a quick start, a demo script is provided in `example.py`. You can run it by executing the following command from a terminal:
+```sh
+python -m example
 ```
-import example.py
-```
-The code was written and with the Python environment Anaconda: https://anaconda.org/anaconda/python
+The code was written in Python.
 For significant speedups, as shown in our paper, you must implement KitNET in C++, or using cython.
 
 # Full Datasets
-The full datasets used in our NDSS paper can be found by following this google drive link:
-https://goo.gl/iShM7E
+The full datasets used in our NDSS paper can be found by following this Kaggle [link](https://www.kaggle.com/datasets/ymirsky/network-attack-dataset-kitsune).
 
 # License
 This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details
