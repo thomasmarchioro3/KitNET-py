@@ -7,7 +7,7 @@ from sklearn.datasets import make_classification
 
 # Local modules
 from src.correlation_cluster import CorrelationCluster
-from corClust import corClust
+from original.corClust import corClust
 
 
 logger = logging.Logger("test_correlation_cluster")
